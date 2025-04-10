@@ -1,0 +1,4 @@
+name = "Outbreak"
+uuid = "937e63a8-272e-4c73-926e-7f809d3004bb"
+authors = ["michaeltmeehan <michael.meehan1@jcu.edu.au>"]
+version = "0.1.0"
