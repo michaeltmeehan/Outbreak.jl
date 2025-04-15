@@ -2,3 +2,13 @@ name = "Outbreak"
 uuid = "937e63a8-272e-4c73-926e-7f809d3004bb"
 authors = ["michaeltmeehan <michael.meehan1@jcu.edu.au>"]
 version = "0.1.0"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+EpiSim = "baf66cd8-34c1-424a-92fd-19e59a9b7bce"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SeqSim = "c8f56641-52ca-49da-8ebe-34c7ee607908"
+
+[compat]
+BenchmarkTools = "1.6.0"
+Random = "1.11.0"
