@@ -396,6 +396,17 @@ weakdeps = ["HTTP"]
     [deps.FileIO.extensions]
     HTTPExt = "HTTP"
 
+[[deps.FilePathsBase]]
+deps = ["Compat", "Dates"]
+git-tree-sha1 = "3bab2c5aa25e7840a4b065805c0cdfc01f3068d2"
+uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
+version = "0.9.24"
+weakdeps = ["Mmap", "Test"]
+
+    [deps.FilePathsBase.extensions]
+    FilePathsBaseMmapExt = "Mmap"
+    FilePathsBaseTestExt = "Test"
+
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
@@ -1352,7 +1363,7 @@ uuid = "91c51154-3ec4-41a3-a24f-3f23e20d615c"
 version = "1.4.8"
 
 [[deps.SeqSim]]
-deps = ["BenchmarkTools", "Crayons", "Distributions", "EpiSim", "LinearAlgebra", "LoopVectorization", "ProfileView", "Random", "StaticArrays", "StatsBase", "Test"]
+deps = ["BenchmarkTools", "Crayons", "Distributions", "EpiSim", "FilePathsBase", "LinearAlgebra", "LoopVectorization", "ProfileView", "Random", "StaticArrays", "StatsBase", "Test"]
 path = "C:/Users/jc213439/Dropbox/dev/SeqSim.jl/"
 uuid = "c8f56641-52ca-49da-8ebe-34c7ee607908"
 version = "0.1.0"
