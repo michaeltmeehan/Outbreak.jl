@@ -18,34 +18,26 @@ function filter_event_log(event_log::Vector{<: EpiSim.EpiEvent.AbstractEpiEvent}
 end
 
 
-struct Node
-    left::Union{Nothing, Int}
-    right::Union{Nothing, Int}
-    time::Float64
-end
-
-
 function get_sampled_tree(event_log::Vector{<:EpiSim.EpiEvent.AbstractEpiEvent})::Vector{Node}
-    ancestors = Set{Int}()
     tree = Vector{Node}()
     node_map = Dict{Int, Int}()
+    num_nodes = 0
     for event in reverse(event_log)
         if event isa EpiSim.Sampling
-            push!(tree, Node(nothing, nothing, event.time))
-            node_map[event.host] = length(tree)
-            push!(ancestors, event.host)
-        elseif event isa EpiSim.Transmission && event.infectee ∈ ancestors
-            pop!(ancestors, event.infectee)
-            if event.infector in ancestors
-                push!(tree, Node(node_map[event.infector], node_map[event.infectee], event.time))
-                node_map[event.infector] = length(tree)
+            num_nodes += 1
+            push!(tree, Node(num_nodes, nothing, nothing, event.time))
+            node_map[event.host] = num_nodes
+        elseif event isa EpiSim.Transmission && haskey(node_map, event.infectee)
+            if haskey(node_map, event.infector)
+                num_nodes += 1
+                push!(tree, Node(num_nodes, node_map[event.infector], node_map[event.infectee], event.time))
+                node_map[event.infector] = num_nodes
             else
                 node_map[event.infector] = node_map[event.infectee]
-                push!(ancestors, event.infector)
             end
-        elseif event isa EpiSim.Seed && event.host ∈ ancestors
-            push!(tree, Node(nothing, node_map[event.host], event.time))
-            push!(ancestors, event.host)
+        elseif event isa EpiSim.Seed && haskey(node_map, event.host)
+            num_nodes += 1
+            push!(tree, Node(num_nodes, nothing, node_map[event.host], event.time))
         end
     end
     return tree

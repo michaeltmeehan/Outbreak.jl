@@ -59,3 +59,44 @@ function simulate_alignment(event_log::Vector{<:EpiSim.AbstractEpiEvent},
                             root_seq::Union{Nothing, SeqSim.Sequence}=nothing)::Vector{SeqSim.Sequence}
     return simulate_alignment(Random.GLOBAL_RNG, event_log, site_model, root_seq=root_seq)
 end
+
+
+function simulate_alignment(rng::AbstractRNG,
+                            tree::Vector{Node},
+                            site_model::SeqSim.SiteModel;
+                            prop::SeqSim.SequencePropagator=SeqSim.SequencePropagator(site_model),
+                            root_seq::Union{Nothing, Vector{UInt8}}=nothing)::Vector{SeqSim.Sequence}
+
+    # Initialize an empty sequence tree
+    sequence_tree = Dict{Int, Vector{UInt8}}()
+
+    # Initialize an alignment vector for leaf nodes
+    alignment = Vector{SeqSim.Sequence}()
+
+    # Main simulation loop
+    for node in reverse(tree)
+        if !haskey(sequence_tree, node.id)
+            sequence_tree[node.id] = isnothing(root_seq) ? SeqSim.rand_seq_int(rng, prop.site_model.sequence_length) : root_seq
+        end
+        sequence = sequence_tree[node.id]
+        if !isnothing(node.left)
+            Δt = tree[node.left].time - node.time
+            updated_sequence = prop(rng, sequence, Δt)
+            sequence_tree[node.left] = updated_sequence
+        end
+        if !isnothing(node.right)
+            Δt = tree[node.right].time - node.time
+            sequence_tree[node.right] = prop(rng, sequence, Δt)
+        end
+        isleaf(node) && push!(alignment, Sequence(sequence_tree[node.id], taxon=node.id, time=node.time))
+    end
+    return alignment
+end
+
+
+function simulate_alignment(tree::Vector{Node},
+                            site_model::SeqSim.SiteModel;
+                            prop::SeqSim.SequencePropagator=SeqSim.SequencePropagator(site_model),
+                            root_seq::Union{Nothing, Vector{UInt8}}=nothing)::Vector{SeqSim.Sequence}
+    return simulate_alignment(Random.GLOBAL_RNG, tree, site_model, prop=prop, root_seq=root_seq)
+end
