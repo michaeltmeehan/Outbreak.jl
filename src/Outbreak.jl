@@ -18,6 +18,6 @@ export simulate_alignment
 
 include("processing.jl")
 
-export filter_event_log
+export filter_event_log, get_sampled_tree
 
 end # module Outbreak

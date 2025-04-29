@@ -52,3 +52,10 @@ function simulate_alignment(rng::AbstractRNG,
     end
     return alignment
 end
+
+
+function simulate_alignment(event_log::Vector{<:EpiSim.AbstractEpiEvent},
+                            site_model::SeqSim.SiteModel;
+                            root_seq::Union{Nothing, SeqSim.Sequence}=nothing)::Vector{SeqSim.Sequence}
+    return simulate_alignment(Random.GLOBAL_RNG, event_log, site_model, root_seq=root_seq)
+end
