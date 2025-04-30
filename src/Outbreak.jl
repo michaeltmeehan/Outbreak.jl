@@ -14,7 +14,7 @@ using Random
 
 include("Node.jl")
 
-export Node
+export AbstractNode
 
 include("simulate.jl")
 

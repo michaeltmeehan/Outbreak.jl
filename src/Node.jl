@@ -1,51 +1,96 @@
-struct Node
+import Base: issorted, show, summary
+
+abstract type AbstractNode end
+
+struct LeafNode <: AbstractNode
     id::Int
-    left::Union{Nothing, Int}
-    right::Union{Nothing, Int}
     time::Float64
 end
 
 
-isleaf(node::Node)::Bool = isnothing(node.left) && isnothing(node.right)
-
-isbinary(node::Node)::Bool = !isnothing(node.left) && !isnothing(node.right)
-
-
-
-
-Base.show(io::IO, node::Node) = print(io, summary(node))
-
-function Base.summary(node::Node)
-    t = round(node.time; sigdigits=3)
-    if isleaf(node)
-        return "Node $(node.id): (leaf, time=$(t))"
-    else
-        return "Node $(node.id): (left=$(node.left), right=$(node.right), time=$(t))"
-    end
+struct BinaryNode <: AbstractNode
+    id::Int
+    left::Int
+    right::Int
+    time::Float64
 end
 
 
-issorted(tree::Vector{Node})::Bool = Base.issorted([node.time for node in tree], rev=true)
+struct RootNode <: AbstractNode
+    id::Int
+    left::Union{Nothing, Int}
+    right::Int
+    time::Float64
+end
+
+isleaf(node::AbstractNode)::Bool = node isa LeafNode
+isbinary(node::AbstractNode)::Bool = node isa BinaryNode || (node isa RootNode && !isnothing(node.left) && !isnothing(node.right))
+isroot(node::AbstractNode)::Bool = node isa RootNode
+
+ischild(node_id::Int, parent::AbstractNode)::Bool = node_id == parent.left || node_id == parent.right
 
 
-function get_height(tree::Vector{Node})::Float64
+function Base.summary(node::LeafNode)
+    t = round(node.time; sigdigits=3)
+    return "LeafNode $(node.id): (time=$t)"
+end
+
+function Base.summary(node::BinaryNode)
+    t = round(node.time; sigdigits=3)
+    return "BinaryNode $(node.id): (left=$(node.left), right=$(node.right), time=$t)"
+end
+
+function Base.summary(node::RootNode)
+    t = round(node.time; sigdigits=3)
+    lstr = isnothing(node.left) ? "∅" : string(node.left)
+    return "RootNode $(node.id): (left=$lstr, right=$(node.right), time=$t)"
+end
+
+
+Base.show(io::IO, node::AbstractNode) = print(io, summary(node))
+
+
+issorted(tree::Vector{<:AbstractNode})::Bool = Base.issorted([node.time for node in tree], rev=true)
+
+
+function get_height(tree::Vector{<:AbstractNode})::Float64
     @assert issorted(tree) "Tree is not sorted in descending order of time."
     return tree[1].time - tree[end].time
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", tree::Vector{Node})
-    n_nodes = length(tree)
+function Base.show(io::IO, ::MIME"text/plain", tree::Vector{<:AbstractNode})
+    n = length(tree)
     n_leaves = count(isleaf, tree)
+    n_roots  = count(isroot, tree)
+    n_binary = count(isbinary, tree)
 
-    println(io, "Tree with $n_nodes nodes")
-    
-    if issorted(tree)
-        height = round(get_height(tree); sigdigits=3)
-        println(io, "  Tree height: $height")
-    else
-        println(io, "  ⚠️  Unsorted tree (expected descending order of time)")
+    println(io, "Phylogenetic tree with $n nodes")
+    println(io, "  Root nodes:   $n_roots")
+    println(io, "  Binary nodes: $n_binary")
+    println(io, "  Leaf nodes:   $n_leaves")
+
+    leaf_times = [node.time for node in tree if node isa LeafNode]
+    internal_times = [node.time for node in tree if node isa BinaryNode || node isa RootNode]
+
+    if !isempty(leaf_times) && !isempty(internal_times)
+        height = round(maximum(internal_times) - minimum(leaf_times); sigdigits=3)
+        println(io, "  Tree height:  $height")
     end
+end
 
-    print(io, "  Number of leaf nodes: $n_leaves")
+
+get_node_ids(tree::Vector{<:AbstractNode})::Vector{Int} = [node.id for node in tree]
+get_node_times(tree::Vector{<:AbstractNode})::Vector{Float64} = [node.time for node in tree]
+
+function Base.in(node_id::Int, tree::Vector{<:AbstractNode})::Bool
+    return any(node -> node.id == node_id, tree)
+end
+
+
+function get_branch_length(parent::AbstractNode, child_id::Int, tree::Vector{<:AbstractNode})::Float64
+    @assert ischild(child_id, parent) "Node $child_id is not a child of node $(parent.id)."
+    @assert child_id in tree "Node $child_id is not in the tree."
+    @assert issorted(tree) "Tree is not sorted in descending order of time."
+    return tree[child_id].time - parent.time
 end

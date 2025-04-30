@@ -1,4 +1,4 @@
-function build_newick(tree::Vector{Node})::String
+function build_newick(tree::Vector{<:AbstractNode})::String
     node_strings = Dict{Int, String}()
     
     for node in reverse(tree)  # start from root (first) down to tips
