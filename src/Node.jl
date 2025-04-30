@@ -58,6 +58,10 @@ function get_height(tree::Vector{<:AbstractNode})::Float64
     return tree[1].time - tree[end].time
 end
 
+get_root_id(tree::Vector{<:AbstractNode})::Int = [node.id for node in tree if isroot(node)][1]
+get_node_ids(tree::Vector{<:AbstractNode})::Vector{Int} = [node.id for node in tree]
+get_node_times(tree::Vector{<:AbstractNode})::Vector{Float64} = [node.time for node in tree]
+
 
 function Base.show(io::IO, ::MIME"text/plain", tree::Vector{<:AbstractNode})
     n = length(tree)
@@ -65,23 +69,14 @@ function Base.show(io::IO, ::MIME"text/plain", tree::Vector{<:AbstractNode})
     n_roots  = count(isroot, tree)
     n_binary = count(isbinary, tree)
 
-    println(io, "Phylogenetic tree with $n nodes")
+    println(io, "Tree with $n nodes")
     println(io, "  Root nodes:   $n_roots")
     println(io, "  Binary nodes: $n_binary")
     println(io, "  Leaf nodes:   $n_leaves")
 
-    leaf_times = [node.time for node in tree if node isa LeafNode]
-    internal_times = [node.time for node in tree if node isa BinaryNode || node isa RootNode]
-
-    if !isempty(leaf_times) && !isempty(internal_times)
-        height = round(maximum(internal_times) - minimum(leaf_times); sigdigits=3)
-        println(io, "  Tree height:  $height")
-    end
+    n_roots == 1 && print(io, "  Tree height:  $(round(get_height(tree),sigdigits=3))")
 end
 
-
-get_node_ids(tree::Vector{<:AbstractNode})::Vector{Int} = [node.id for node in tree]
-get_node_times(tree::Vector{<:AbstractNode})::Vector{Float64} = [node.time for node in tree]
 
 function Base.in(node_id::Int, tree::Vector{<:AbstractNode})::Bool
     return any(node -> node.id == node_id, tree)
