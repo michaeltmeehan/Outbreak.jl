@@ -24,4 +24,8 @@ include("processing.jl")
 
 export filter_event_log, get_sampled_tree
 
+include("export.jl")
+
+export build_newick
+
 end # module Outbreak

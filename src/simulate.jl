@@ -1,93 +1,29 @@
-function simulate_alignment(rng::AbstractRNG,
-                            event_log::Vector{<:EpiSim.AbstractEpiEvent},
-                            site_model::SeqSim.SiteModel;
-                            root_seq::Union{Nothing, SeqSim.Sequence}=nothing)::Vector{SeqSim.Sequence}
-
-    # Initialize an empty sequence tree
-    sequence_tree = Dict{Int, SeqSim.Sequence}()
-
-    # Initialize the root sequence in the tree
-    alignment = Vector{SeqSim.Sequence}()
-
-    # Unpack site_model
-    sequence_length = site_model.sequence_length
-    μ = site_model.μ
-    variable_sites = site_model.variable_sites
-    gamma_category_count = site_model.gamma_category_count
-    λ = site_model.substitution_model.λ
-    V = site_model.substitution_model.V
-    V⁻¹ = site_model.substitution_model.V⁻¹
-    
-    # Initialize transition weights
-    transition_weights = [zeros(4,4) for _ in 1:gamma_category_count]
-
-    for event in event_log
-        if event isa EpiSim.Seed
-            sequence_tree[event.host] = isnothing(root_seq) ? SeqSim.rand_seq(rng, sequence_length, taxon=event.host, time=event.time) : root_seq
-
-        elseif event isa EpiSim.Transmission
-            # Get the parent sequence from the tree
-            parent_sequence = sequence_tree[event.infector]
-
-            # calculate the time since update
-            Δt = event.time - parent_sequence.time
-
-            # Update parent sequence and pass it to child
-            SeqSim.update_sequence!(rng, parent_sequence.value, transition_weights, Δt, μ, variable_sites, λ, V, V⁻¹)
-            sequence_tree[event.infectee] = SeqSim.Sequence(event.infectee, copy(parent_sequence.value), event.time)
-
-        elseif event isa EpiSim.Sampling
-            # Get the sampled sequence from the tree
-            sampled_sequence = sequence_tree[event.host]
-
-            # Calculate the time since last update
-            Δt = event.time - sampled_sequence.time
-
-            # Update sequence
-            SeqSim.update_sequence!(rng, sampled_sequence.value, transition_weights, Δt, μ, variable_sites, λ, V, V⁻¹)
-
-            # Add the sampled sequence to the alignment
-            push!(alignment, sampled_sequence)
-        end
-    end
-    return alignment
-end
-
-
-function simulate_alignment(event_log::Vector{<:EpiSim.AbstractEpiEvent},
-                            site_model::SeqSim.SiteModel;
-                            root_seq::Union{Nothing, SeqSim.Sequence}=nothing)::Vector{SeqSim.Sequence}
-    return simulate_alignment(Random.GLOBAL_RNG, event_log, site_model, root_seq=root_seq)
+function propagate_to_child!(rng::AbstractRNG, tree::Vector{Node}, parent_node::Node, child_id::Union{Nothing, Int}, sequence::Vector{UInt8},
+                          sequence_tree::Dict{Int, Vector{UInt8}}, prop::SeqSim.SequencePropagator)
+    isnothing(child_id) && return
+    Δt = tree[child_id].time - parent_node.time
+    @assert Δt ≥ 0 "Negative branch length encountered between node $(parent_node.id) and $child_id."
+    sequence_tree[child_id] = prop(rng, sequence, Δt)
 end
 
 
 function simulate_alignment(rng::AbstractRNG,
                             tree::Vector{Node},
-                            site_model::SeqSim.SiteModel;
-                            prop::SeqSim.SequencePropagator=SeqSim.SequencePropagator(site_model),
-                            root_seq::Union{Nothing, Vector{UInt8}}=nothing)::Vector{SeqSim.Sequence}
-
-    # Initialize an empty sequence tree
+                            prop::SeqSim.SequencePropagator,
+                            root_seq::Union{Nothing, Vector{UInt8}})::Vector{SeqSim.Sequence}
+    @assert issorted(tree) "Tree is not sorted in descending order of time."
     sequence_tree = Dict{Int, Vector{UInt8}}()
-
-    # Initialize an alignment vector for leaf nodes
     alignment = Vector{SeqSim.Sequence}()
 
     # Main simulation loop
     for node in reverse(tree)
-        if !haskey(sequence_tree, node.id)
-            sequence_tree[node.id] = isnothing(root_seq) ? SeqSim.rand_seq_int(rng, prop.site_model.sequence_length) : root_seq
+        sequence = get!(sequence_tree, node.id) do
+            isnothing(root_seq) ? SeqSim.rand_seq_int(rng, prop.site_model) : root_seq
         end
-        sequence = sequence_tree[node.id]
-        if !isnothing(node.left)
-            Δt = tree[node.left].time - node.time
-            updated_sequence = prop(rng, sequence, Δt)
-            sequence_tree[node.left] = updated_sequence
-        end
-        if !isnothing(node.right)
-            Δt = tree[node.right].time - node.time
-            sequence_tree[node.right] = prop(rng, sequence, Δt)
-        end
+
+        propagate_to_child!(rng, tree, node, node.left, sequence, sequence_tree, prop)
+        propagate_to_child!(rng, tree, node, node.right, sequence, sequence_tree, prop)
+        
         isleaf(node) && push!(alignment, Sequence(sequence_tree[node.id], taxon=node.id, time=node.time))
     end
     return alignment
@@ -95,8 +31,7 @@ end
 
 
 function simulate_alignment(tree::Vector{Node},
-                            site_model::SeqSim.SiteModel;
-                            prop::SeqSim.SequencePropagator=SeqSim.SequencePropagator(site_model),
+                            prop::SeqSim.SequencePropagator;
                             root_seq::Union{Nothing, Vector{UInt8}}=nothing)::Vector{SeqSim.Sequence}
-    return simulate_alignment(Random.GLOBAL_RNG, tree, site_model, prop=prop, root_seq=root_seq)
+    return simulate_alignment(Random.GLOBAL_RNG, tree, prop, root_seq)
 end
