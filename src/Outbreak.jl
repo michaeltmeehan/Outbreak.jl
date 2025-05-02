@@ -3,7 +3,7 @@ module Outbreak
 using EpiSim
 
 export BirthDeathModel, MultiTypeBirthDeathModel, SIRModel, SEIRModel, SuperSpreaderModel
-export simulate_outbreak
+export simulate_events
 
 using SeqSim
 
@@ -26,6 +26,6 @@ export filter_event_log, get_sampled_tree
 
 include("export.jl")
 
-export build_newick
+export build_newick, write_nexus
 
 end # module Outbreak

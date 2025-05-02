@@ -4,6 +4,7 @@ authors = ["michaeltmeehan <michael.meehan1@jcu.edu.au>"]
 version = "0.1.0"
 
 [deps]
+BEASTXML = "05c224f8-0938-40b7-8356-d159201bf633"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 EpiSim = "baf66cd8-34c1-424a-92fd-19e59a9b7bce"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
