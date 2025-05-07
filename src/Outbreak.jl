@@ -7,7 +7,7 @@ export simulate_events
 
 using SeqSim
 
-export SiteModel, JC, F81, K2P, HKY, GTR, Sequence, SequencePropagator
+export SiteModel, JC, F81, K2P, HKY, GTR, Sequence, Alignment, SequencePropagator
 export rand_seq
 
 using Random
@@ -27,5 +27,12 @@ export filter_event_log, get_sampled_tree
 include("export.jl")
 
 export build_newick, write_nexus
+
+using EzXML
+
+include("beast/BEASTPlugIns.jl")
+using .BEASTPlugIns
+
+export to_elementnode
 
 end # module Outbreak

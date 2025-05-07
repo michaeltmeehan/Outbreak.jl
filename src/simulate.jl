@@ -37,6 +37,6 @@ end
 
 function simulate_alignment(tree::Vector{<:AbstractNode},
                             prop::SeqSim.SequencePropagator;
-                            root_seq::Union{Nothing, Vector{UInt8}}=nothing)::Vector{SeqSim.Sequence}
+                            root_seq::Union{Nothing, Vector{UInt8}}=nothing)::SeqSim.Alignment
     return simulate_alignment(Random.GLOBAL_RNG, tree, prop, root_seq)
 end
