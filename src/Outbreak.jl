@@ -33,6 +33,6 @@ using EzXML
 include("beast/BEASTPlugIns.jl")
 using .BEASTPlugIns
 
-export to_elementnode
+export build_elementnode, to_elementnode, make_datetrait_element, make_tree_element, make_beast_xml
 
 end # module Outbreak
