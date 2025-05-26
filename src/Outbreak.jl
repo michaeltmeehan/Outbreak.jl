@@ -1,9 +1,21 @@
 module Outbreak
 
+using Lazy
+
 using EpiSim
 
-export BirthDeathModel, MultiTypeBirthDeathModel, SIRModel, SEIRModel, SuperSpreaderModel
-export simulate_events
+export AbstractModel, Model
+export MTBDModel, BDModel, SIRModel, SEIRModel, SuperSpreaderModel
+export MTBDParameters, BDParameters, SIRParameters, SEIRParameters, SuperSpreaderParameters
+export AgenticMTBDState, AgenticBDState, AgenticSIRState, AgenticSEIRState, AgenticSuperSpreaderState
+export AggregateMTBDState, AggregateBDState, AggregateSIRState, AggregateSEIRState, AggregateSuperSpreaderState
+
+export Seed, Transmission, Recovery, Sampling, Activation
+
+export simulate, event_counts
+
+# export BirthDeathModel, MultiTypeBirthDeathModel, SIRModel, SEIRModel, SuperSpreaderModel
+# export simulate_events
 
 using SeqSim
 
@@ -14,7 +26,7 @@ using Random
 
 include("Node.jl")
 
-export AbstractNode
+export AbstractNode, Node, Tree
 
 include("simulate.jl")
 
@@ -22,7 +34,8 @@ export simulate_alignment
 
 include("processing.jl")
 
-export filter_event_log, get_sampled_tree
+# export filter_event_log
+export get_sampled_tree
 
 include("export.jl")
 
@@ -34,5 +47,6 @@ include("beast/BEASTPlugIns.jl")
 using .BEASTPlugIns
 
 export build_elementnode, to_elementnode, make_datetrait_element, make_tree_element, make_beast_xml
+export get_tree_stats
 
 end # module Outbreak
