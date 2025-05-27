@@ -15,21 +15,32 @@ isbinary(node::Node)::Bool = !isnothing(node.left) && !isnothing(node.right)
 isroot(node::Node)::Bool = isnothing(node.left) && !isnothing(node.right)
 
 
-mutable struct Tree{N<:AbstractNode}
+struct Tree{N<:AbstractNode}
     nodes::Vector{N}
+    branch_lengths::Vector{Float64} # Distance of each node back to its parent
 end
 
 
-Base.length(tree::Tree) = length(tree.nodes)
-Base.getindex(tree::Tree, node_id::Int) = tree.nodes[node_id]
-Base.getindex(tree::Tree, node_ids::AbstractVector{<:Int}) = tree.nodes[node_ids]
+Base.length(t::Tree) = length(t.nodes)
+Base.getindex(t::Tree, node_id::Int) = t.nodes[node_id]
+Base.getindex(t::Tree, node_ids::AbstractVector{<:Int}) = t.nodes[node_ids]
 # eachnode(tree::Tree) = tree.nodes
-Base.iterate(tree::Tree) = iterate(tree.nodes)
-Base.iterate(tree::Tree, state::Int) = iterate(tree.nodes, state)
+Base.iterate(t::Tree) = iterate(t.nodes)
+Base.iterate(t::Tree, state::Int) = iterate(t.nodes, state)
 
 Base.lastindex(t::Tree) = lastindex(t.nodes)
 Base.firstindex(t::Tree) = firstindex(t.nodes)
-Base.reverse(t::Tree) = Tree(reverse(t.nodes))
+
+Base.iterate(r::Base.Iterators.Reverse{Tree}) = iterate(r.itr.nodes, length(r.itr.nodes))
+Base.iterate(r::Base.Iterators.Reverse{Tree}, state) = iterate(r.itr.nodes, state)
+Base.reverse(t::Tree) = Base.Iterators.Reverse(t)
+
+Base.eltype(::Type{Tree{N}}) where {N<:AbstractNode} = N
+Base.IteratorEltype(::Type{Tree}) = Base.HasEltype()
+
+Base.keys(t::Tree) = keys(t.nodes)
+Base.values(t::Tree) = values(t.nodes)
+Base.pairs(t::Tree) = pairs(t.nodes)
 
 get_root(tree::Tree) = tree[end]
 

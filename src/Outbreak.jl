@@ -11,6 +11,7 @@ export AgenticMTBDState, AgenticBDState, AgenticSIRState, AgenticSEIRState, Agen
 export AggregateMTBDState, AggregateBDState, AggregateSIRState, AggregateSEIRState, AggregateSuperSpreaderState
 
 export Seed, Transmission, Recovery, Sampling, Activation
+export n_sampled, n_recovered, n_transmissions, n_seeds, n_activations, n_events
 
 export simulate, event_counts
 
@@ -20,13 +21,14 @@ export simulate, event_counts
 using SeqSim
 
 export SiteModel, JC, F81, K2P, HKY, GTR, Sequence, Alignment, SequencePropagator
-export rand_seq
+export rand_seq, rand_seq_int
 
 using Random
 
 include("Node.jl")
 
 export AbstractNode, Node, Tree
+export isleaf, isbinary, isroot
 
 include("simulate.jl")
 

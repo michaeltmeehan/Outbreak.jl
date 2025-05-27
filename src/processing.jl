@@ -1,91 +1,35 @@
-
-# function filter_event_log(event_log::Vector{<: EpiSim.EpiEvent.AbstractEpiEvent})
-#     filtered_log = Vector{EpiSim.EpiEvent.AbstractEpiEvent}()
-#     ancestors = Set{Int}()
-#     for event in reverse(event_log)
-#         if event isa EpiSim.Sampling
-#             push!(filtered_log, event)
-#             push!(ancestors, event.host)
-#         elseif event isa EpiSim.Transmission && event.infectee in ancestors
-#                 push!(filtered_log, event)
-#                 push!(ancestors, event.infector)
-#         elseif event isa EpiSim.Seed && event.host in ancestors
-#                 push!(filtered_log, event)
-#                 push!(ancestors, event.host)
-#         end
-#     end
-#     return reverse(filtered_log)
-# end
-
-
-# function add_leaf!(tree::Vector{<:AbstractNode}, event::Sampling, node_map::Dict{Int, Int}, node_id::Int)
-#     node_id += 1
-#     push!(tree, LeafNode(node_id, event.time))
-#     node_map[event.host] = node_id
-#     return node_id
-# end
-
-
-# # TODO: Perhaps rename this because a binary node is not always added (i.e., the else branch)
-# function add_binary!(tree::Vector{<:AbstractNode}, event::Transmission, node_map::Dict{Int, Int}, node_id::Int)
-#     if haskey(node_map, event.infector)
-#         node_id += 1
-#         push!(tree, BinaryNode(node_id, node_map[event.infector], node_map[event.infectee], event.time))
-#         node_map[event.infector] = node_id
-#     else
-#         node_map[event.infector] = node_map[event.infectee]
-#     end
-#     return node_id
-# end
-
-
-# function add_root!(tree::Vector{<:AbstractNode}, event::Seed, node_map::Dict{Int, Int}, node_id::Int)
-#     node_id += 1
-#     push!(tree, RootNode(node_id, nothing, node_map[event.host], event.time))
-#     return node_id
-# end
-
-
-# function get_sampled_tree(event_log::Vector{<:AbstractEvent})::Vector{<:AbstractNode}
-#     tree = Vector{AbstractNode}()
-#     node_map = Dict{Int, Int}()
-#     node_id = 0
-#     for event in reverse(event_log)
-#         if event isa EpiSim.Sampling
-#             node_id = add_leaf!(tree, event, node_map, node_id)
-#         elseif event isa EpiSim.Transmission && haskey(node_map, event.infectee)
-#             node_id = add_binary!(tree, event, node_map, node_id)
-#         elseif event isa EpiSim.Seed && haskey(node_map, event.host)
-#             node_id = add_root!(tree, event, node_map, node_id)
-#         end
-#     end
-#     return tree
-# end
-
-
 function get_sampled_tree(event_log::Vector{<:AbstractEvent})::Tree
-    tree = Vector{AbstractNode}()
+    n_leaves = n_sampled(event_log)
+    nodes = Vector{AbstractNode}(undef, 2*n_leaves)
+    branch_lengths = Vector{Float64}(undef, 2*n_leaves-1)
     node_map = Dict{Int, Int}()
+    node_id = 0
     for event in reverse(event_log)
         if event isa Sampling
-            node_id = length(tree) + 1
-            push!(tree, Node(node_id, nothing, nothing, event.time))
+            node_id += 1
+            nodes[node_id] = Node(node_id, nothing, nothing, event.time)
             node_map[event.host] = node_id
         elseif event isa Transmission && haskey(node_map, event.infectee)
             if haskey(node_map, event.infector)
-                node_id = length(tree) + 1
-                push!(tree, Node(node_id, node_map[event.infector], node_map[event.infectee], event.time))
+                node_id += 1
+                left, right = node_map[event.infector], node_map[event.infectee]
+                nodes[node_id] = Node(node_id, left, right, event.time)
+                branch_lengths[left] = nodes[left].time - event.time
+                branch_lengths[right] = nodes[right].time - event.time
                 node_map[event.infector] = node_id
             else
                 node_map[event.infector] = node_map[event.infectee]
             end
         elseif event isa Seed && haskey(node_map, event.host)
-            node_id = length(tree) + 1
-            push!(tree, Node(node_id, nothing, node_map[event.host], event.time))
+            node_id += 1
+            left = node_map[event.host]
+            nodes[node_id] = Node(node_id, left, nothing, event.time)
+            branch_lengths[left] = nodes[left].time - event.time
         end
     end
-    return Tree(tree)
+    return Tree(nodes, branch_lengths)
 end
+
 
 @forward Simulation.event_log get_sampled_tree
 
