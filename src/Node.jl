@@ -12,7 +12,9 @@ end
 
 isleaf(node::Node)::Bool = isnothing(node.left) && isnothing(node.right)
 isbinary(node::Node)::Bool = !isnothing(node.left) && !isnothing(node.right)
-isroot(node::Node)::Bool = isnothing(node.left) && !isnothing(node.right)
+isroot(node::Node)::Bool = !isnothing(node.left) && isnothing(node.right)
+
+height(node::Node)::Float64 = node.time
 
 
 struct Tree{N<:AbstractNode}
@@ -43,11 +45,6 @@ Base.values(t::Tree) = values(t.nodes)
 Base.pairs(t::Tree) = pairs(t.nodes)
 
 get_root(tree::Tree) = tree[end]
-
-
-function get_branch_length(parent::AbstractNode, child_id::Int, tree::Tree{<:AbstractNode})::Float64
-    return tree[child_id].time - parent.time
-end
 
 
 # struct LeafNode <: AbstractNode
