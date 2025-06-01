@@ -1,6 +1,7 @@
 function get_sampled_tree(event_log::Vector{<:AbstractEvent})::Tree
     n_leaves = n_sampled(event_log)
     nodes = Vector{AbstractNode}(undef, 2*n_leaves)
+    n_leaves == 0 && return Tree(nodes, Float64[])
     branch_lengths = Vector{Float64}(undef, 2*n_leaves-1)
     node_map = Dict{Int, Int}()
     node_id = 0
@@ -70,9 +71,75 @@ function get_tree_stats(tree::Tree)
             end
         end
     end
+    
+    depth, width = get_tree_size(tree)
 
     tree_height = tree[1].time - tree[end].time
-    # colless_index /= (n_leaves - 1) * (n_leaves - 2) / 2
+    colless_index /= (n_leaves - 1) * (n_leaves - 2) / 2
     sackin_index = sum(root_to_tip_distances) / n_leaves
-    return tree_height, colless_index, sackin_index, n_leaves, n_cherries, n_ladder_nodes, max_ladder_length
+    ladder_length = max_ladder_length / n_leaves
+    il_portion = n_ladder_nodes / n_leaves
+    max_width_on_depth = maximum(width) / maximum(depth)
+    max_width_difference = maximum(diff(width))
+    return (; tree_height = tree_height,
+            colless_index = colless_index,
+            sackin_index = sackin_index,
+            n_leaves = n_leaves,
+            n_cherries = n_cherries,
+            n_ladder_nodes = n_ladder_nodes,
+            max_ladder_length = max_ladder_length,
+            ladder_length = ladder_length,
+            il_portion = il_portion,
+            max_width_on_depth = max_width_on_depth,
+            max_width_difference = max_width_difference)
+end
+
+
+function get_tree_size(tree::Tree)
+    depth = Vector{Int}(undef, length(tree))
+    for node in reverse(tree)
+        if isroot(node)
+            depth[node.id] = 0
+            depth[node.left] = 1
+        elseif isbinary(node)
+            depth[node.left] = depth[node.right] = depth[node.id] + 1
+        end
+    end
+    width = _tabulate(depth)
+    return depth, width
+end
+
+
+function _tabulate(v::Vector{Int})::Vector{Int}
+    out = fill(0, maximum(v) + 1)
+    for i in v
+        out[i+1] += 1
+    end
+    return out
+end
+
+
+function _vectorize(d::Dict{Int, Int})::Vector{Int}
+    out = fill(0, maximum(keys(d)) + 1)
+    for (k, v) in d
+        out[k+1] = v
+    end
+    return out
+end
+
+
+function get_ltt(tree::Tree)::Tuple{Vector{Float64}, Vector{Int}}
+    t = Vector{Float64}(undef, length(tree))
+    n = fill(0, length(tree))
+    for (i, node) in enumerate(reverse(tree))
+        t[i] = node.time
+        if isleaf(node)
+            n[i] = n[i-1] - 1
+        elseif isbinary(node)
+            n[i] = n[i-1] + 1
+        elseif isroot(node)
+            n[i] = i > 1 ? n[i-1] + 1 : 1
+        end
+    end
+    return t, n
 end

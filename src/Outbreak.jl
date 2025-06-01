@@ -1,8 +1,10 @@
 module Outbreak
 
 using Lazy
+using StatsBase
 
 using EpiSim
+
 
 export AbstractModel, Model
 export MTBDModel, BDModel, SIRModel, SEIRModel, SuperSpreaderModel
@@ -37,7 +39,7 @@ export simulate_alignment
 include("processing.jl")
 
 # export filter_event_log
-export get_sampled_tree
+export get_sampled_tree, get_tree_stats, get_ltt
 
 include("export.jl")
 
