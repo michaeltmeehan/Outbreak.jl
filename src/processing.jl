@@ -143,3 +143,52 @@ function get_ltt(tree::Tree)::Tuple{Vector{Float64}, Vector{Int}}
     end
     return t, n
 end
+
+
+function get_ltt(tree::Tree, t::AbstractVector{<:Real})::Vector{Int}
+    length(tree) == 0 && return fill(0, length(t))
+    times, n = get_ltt(tree)
+    out = Vector{Int}(undef, length(t))
+    for (i, time) in enumerate(t)
+        idx = searchsortedlast(times, time)
+        out[i] = isnothing(idx) ? 0 : n[idx]
+        # idx = searchsortedfirst(times, time)
+        # out[i] = idx > length(times) ? n[end] : n[idx]
+    end
+    return out
+end
+
+
+function get_n(state_log::AbstractDataFrame, t::AbstractVector{<:Real})::Vector{Int}
+    out = fill(0, length(t))
+    for (i, time) in enumerate(t)
+        idx = searchsortedlast(state_log.t, time)
+        if idx > 0
+            out[i] = state_log.I[idx]
+        end
+    end
+    return out
+end
+
+
+@forward Simulation.state_log get_n
+
+# Get cumulative sampled
+function get_S(event_log::Vector{<:AbstractEvent})::Tuple{Vector{Float64}, Vector{Int}}
+    t = [0.; [event.time for event in event_log if event isa Sampling]]
+    return t, cumsum(0:length(t)-1)
+end
+
+
+function get_S(event_log::Vector{<:AbstractEvent}, t::AbstractVector{<:Real})::Vector{Int}
+    time, s = get_S(event_log)
+    s_out = fill(0, length(t))
+    for (i, τ) in enumerate(t)
+        idx = searchsortedlast(time, τ)
+        s_out[i] = s[idx]
+    end
+    return s_out
+end
+
+
+@forward Simulation.event_log get_S

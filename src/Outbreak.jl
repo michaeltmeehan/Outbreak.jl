@@ -1,5 +1,6 @@
 module Outbreak
 
+using DataFrames
 using Lazy
 using StatsBase
 
@@ -15,7 +16,7 @@ export AggregateMTBDState, AggregateBDState, AggregateSIRState, AggregateSEIRSta
 export Seed, Transmission, Recovery, Sampling, Activation
 export n_sampled, n_recovered, n_transmissions, n_seeds, n_activations, n_events
 
-export simulate, event_counts
+export simulate, event_counts, get_state
 
 # export BirthDeathModel, MultiTypeBirthDeathModel, SIRModel, SEIRModel, SuperSpreaderModel
 # export simulate_events
@@ -39,7 +40,7 @@ export simulate_alignment
 include("processing.jl")
 
 # export filter_event_log
-export get_sampled_tree, get_tree_stats, get_ltt
+export get_sampled_tree, get_tree_stats, get_ltt, get_N, get_S
 
 include("export.jl")
 
