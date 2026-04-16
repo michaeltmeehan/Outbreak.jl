@@ -72,6 +72,11 @@ These functions delegate to `TreeSim.tree_from_eventlog` and
 tree-to-alignment semantics. Stage transitions fail early when the required
 upstream stage is missing.
 
+In this recovery workspace, Outbreak.jl uses local sibling package sources for
+TreeSim and SeqSim, and its tests load EpiSim so TreeSim's EpiSim extension is
+available. Those package extensions are the integration contracts; Outbreak.jl
+only composes them.
+
 ## Public Surface
 
 The first orchestration surface is intentionally small:

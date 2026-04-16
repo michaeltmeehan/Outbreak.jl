@@ -49,6 +49,15 @@ function same_tree(a::Tree, b::Tree)
            a.label == b.label
 end
 
+function same_alignment(a, b)
+    return length(a) == length(b) &&
+           all(a[i].taxon == b[i].taxon &&
+               a[i].time == b[i].time &&
+               a[i].value == b[i].value for i in eachindex(a))
+end
+
+project_text() = read(joinpath(dirname(@__DIR__), "Project.toml"), String)
+
 @testset "Outbreak bundle construction" begin
     log = fixture_event_log()
     tree = fixture_tree()
@@ -79,21 +88,37 @@ end
     @test occursin("log  : populated", sprint(show, MIME"text/plain"(), full))
 end
 
-@testset "Event log to tree orchestration" begin
-    log = fixture_event_log()
+@testset "Sibling package integration assumptions" begin
+    @testset "Local sibling sources and test extras are declared" begin
+        project = project_text()
 
-    out = with_tree(log)
-    simulated = simulate_outbreak_tree(log)
+        @test occursin("EpiSim = {path = \"../EpiSim.jl\"}", project)
+        @test occursin("SeqSim = {path = \"../SeqSim.jl\"}", project)
+        @test occursin("TreeSim = {path = \"../TreeSim.jl\"}", project)
+        @test occursin("test = [\"EpiSim\", \"Test\"]", project)
+    end
 
-    @test out.log === log
-    @test has_tree(out)
-    @test same_tree(out.tree, tree_from_eventlog(log))
-    @test validate_tree(out.tree)
-    @test validate_tree_against_eventlog(log, out.tree)
-    @test same_tree(outbreak_tree(log), out.tree)
-    @test simulated.log === log
-    @test same_tree(simulated.tree, out.tree)
-    @test simulated.aln === nothing
+    @testset "EpiSim logs are handled by TreeSim's extension" begin
+        log = fixture_event_log()
+        tree = tree_from_eventlog(log)
+
+        @test validate_event_log(log; throw=false)
+        @test tree isa Tree
+        @test validate_tree(tree)
+        @test validate_tree_against_eventlog(log, tree)
+    end
+
+    @testset "TreeSim trees are handled by SeqSim's extension" begin
+        tree = fixture_tree()
+        model = site_model()
+        result = simulate_tree_sequences(MersenneTwister(19), tree, model)
+        aln = simulate_alignment(MersenneTwister(19), tree, model)
+
+        @test result.root == root(tree)
+        @test result.tips == tips(tree)
+        @test same_alignment(result.tip_alignment, aln)
+        @test length(aln) == nleaves(tree)
+    end
 end
 
 @testset "Invalid stage transitions fail explicitly" begin
@@ -121,37 +146,57 @@ end
     @test occursin("populate the alignment stage", sprint(showerror, err.value))
 end
 
-@testset "Tree to alignment orchestration" begin
-    tree = fixture_tree()
-    model = site_model()
+@testset "Outbreak orchestration delegates" begin
+    @testset "Event log to tree orchestration" begin
+        log = fixture_event_log()
 
-    out = with_alignment(MersenneTwister(21), tree, model)
-    direct = simulate_alignment(MersenneTwister(21), tree, model)
+        out = with_tree(log)
+        simulated = simulate_outbreak_tree(log)
 
-    @test out.log === nothing
-    @test out.tree === tree
-    @test out.aln == direct
-    @test length(out.aln) == nleaves(tree)
-    @test outbreak_alignment(MersenneTwister(21), tree, model) == direct
-    @test_throws ArgumentError with_alignment(Outbreak(fixture_event_log()), model)
+        @test out.log === log
+        @test has_tree(out)
+        @test same_tree(out.tree, tree_from_eventlog(log))
+        @test validate_tree(out.tree)
+        @test validate_tree_against_eventlog(log, out.tree)
+        @test same_tree(outbreak_tree(log), out.tree)
+        @test simulated.log === log
+        @test same_tree(simulated.tree, out.tree)
+        @test simulated.aln === nothing
+    end
 
-    @test sprint(show, out) == "Outbreak(log=empty, tree=Tree, aln=Vector)"
-    @test occursin("log  : empty", sprint(show, MIME"text/plain"(), out))
-end
+    @testset "Tree to alignment orchestration" begin
+        tree = fixture_tree()
+        model = site_model()
 
-@testset "End-to-end smoke path" begin
-    log = fixture_event_log()
-    model = site_model()
+        out = with_alignment(MersenneTwister(21), tree, model)
+        direct = simulate_alignment(MersenneTwister(21), tree, model)
 
-    out = simulate_outbreak_alignment(MersenneTwister(31), log, model)
-    expected_tree = tree_from_eventlog(log)
-    expected_aln = simulate_alignment(MersenneTwister(31), expected_tree, model)
+        @test out.log === nothing
+        @test out.tree === tree
+        @test out.aln == direct
+        @test length(out.aln) == nleaves(tree)
+        @test outbreak_alignment(MersenneTwister(21), tree, model) == direct
+        @test_throws ArgumentError with_alignment(Outbreak(fixture_event_log()), model)
 
-    @test out.log === log
-    @test same_tree(out.tree, expected_tree)
-    @test out.aln == expected_aln
-    @test length(out.aln) == nleaves(out.tree)
-    @test [seq.taxon for seq in out.aln] == out.tree.label[tips(out.tree)]
+        @test sprint(show, out) == "Outbreak(log=empty, tree=Tree, aln=Vector)"
+        @test occursin("log  : empty", sprint(show, MIME"text/plain"(), out))
+    end
+
+    @testset "End-to-end smoke path" begin
+        log = fixture_event_log()
+        model = site_model()
+
+        out = simulate_outbreak_alignment(MersenneTwister(31), log, model)
+        expected_tree = tree_from_eventlog(log)
+        expected_aln = simulate_alignment(MersenneTwister(31), expected_tree, model)
+
+        @test out.log === log
+        @test same_tree(out.tree, expected_tree)
+        @test out.aln == expected_aln
+        @test length(out.aln) == nleaves(out.tree)
+        @test [seq.taxon for seq in out.aln] == out.tree.label[tips(out.tree)]
+        @test iscomplete(out)
+    end
 end
 
 @testset "Default RNG overloads use task-local default RNG" begin

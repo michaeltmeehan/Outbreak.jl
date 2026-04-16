@@ -79,8 +79,9 @@ end
     with_tree(log; validate=true)
 
 Populate the tree stage from an event log using `TreeSim.tree_from_eventlog`.
-The event-log-to-tree semantics live in TreeSim and its package extensions. A
-log is required for this transition.
+The event-log-to-tree semantics live in TreeSim and its package extensions; for
+EpiSim logs, the TreeSim/EpiSim extension must be available. A log is required
+for this transition.
 """
 function with_tree(outbreak::Outbreak; validate::Bool=true)
     _require_stage(outbreak, :log, "populate the tree stage")
@@ -94,6 +95,9 @@ with_tree(log; validate::Bool=true) = with_tree(Outbreak(log); validate)
     outbreak_tree(log; validate=true)
 
 Return only the sampled-ancestry tree extracted by TreeSim.
+
+This is a single-stage delegate. It does not define event-log-to-tree
+semantics in Outbreak.jl.
 """
 function outbreak_tree(log; validate::Bool=true)
     log === nothing &&
@@ -117,8 +121,9 @@ end
     with_alignment(tree, site_model)
 
 Populate the alignment stage using `SeqSim.simulate_alignment`. The tree-driven
-sequence semantics live in SeqSim and its package extensions. Passing a tree
-directly returns a tree-only partial bundle with `log === nothing`.
+sequence semantics live in SeqSim and its package extensions; for TreeSim
+trees, the SeqSim/TreeSim extension must be available. Passing a tree directly
+returns a tree-only partial bundle with `log === nothing`.
 """
 function with_alignment(rng::AbstractRNG, outbreak::Outbreak, site_model)
     _require_stage(outbreak, :tree, "populate the alignment stage")
@@ -135,6 +140,9 @@ with_alignment(tree, site_model) = with_alignment(Random.default_rng(), tree, si
     outbreak_alignment(tree, site_model)
 
 Return only the tip alignment simulated by SeqSim.
+
+This is a single-stage delegate. It does not define tree-to-alignment semantics
+in Outbreak.jl.
 """
 outbreak_alignment(rng::AbstractRNG, tree, site_model) = SeqSim.simulate_alignment(rng, tree, site_model)
 outbreak_alignment(tree, site_model) = SeqSim.simulate_alignment(Random.default_rng(), tree, site_model)
@@ -144,7 +152,8 @@ outbreak_alignment(tree, site_model) = SeqSim.simulate_alignment(Random.default_
     simulate_outbreak_alignment(log, site_model; validate=true)
 
 Run the first composed workflow: event log to sampled-ancestry tree to tip
-alignment. Returns an `Outbreak` containing the log, tree, and alignment.
+alignment. Returns an `Outbreak` containing the log, tree, and alignment while
+leaving both bridge semantics to TreeSim and SeqSim.
 """
 function simulate_outbreak_alignment(
     rng::AbstractRNG,
