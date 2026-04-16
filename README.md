@@ -28,6 +28,8 @@ out.aln
 The bundle is a partial workflow state, not a claim that every stage was
 produced by Outbreak.jl. For example, tree-first workflows may use
 `Outbreak(nothing, tree, aln)` when an existing tree is the starting point.
+Use `iscomplete(out)` only when a workflow requires log, tree, and alignment to
+all be present.
 
 ## Orchestrated Workflows
 
@@ -67,14 +69,15 @@ out = simulate_outbreak_alignment(rng, log, site_model)
 
 These functions delegate to `TreeSim.tree_from_eventlog` and
 `SeqSim.simulate_alignment`. Outbreak.jl does not redefine event-log-to-tree or
-tree-to-alignment semantics.
+tree-to-alignment semantics. Stage transitions fail early when the required
+upstream stage is missing.
 
 ## Public Surface
 
 The first orchestration surface is intentionally small:
 
 - `Outbreak`
-- `has_log`, `has_tree`, `has_alignment`
+- `has_log`, `has_tree`, `has_alignment`, `iscomplete`
 - `with_tree`, `outbreak_tree`
 - `with_alignment`, `outbreak_alignment`
 - `simulate_outbreak_tree`

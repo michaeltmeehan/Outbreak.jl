@@ -8,6 +8,7 @@ export Outbreak,
        has_log,
        has_tree,
        has_alignment,
+       iscomplete,
        with_tree,
        with_alignment,
        outbreak_tree,
@@ -38,6 +39,7 @@ Outbreak(log, tree) = Outbreak(log, tree, nothing)
 has_log(outbreak::Outbreak) = outbreak.log !== nothing
 has_tree(outbreak::Outbreak) = outbreak.tree !== nothing
 has_alignment(outbreak::Outbreak) = outbreak.aln !== nothing
+iscomplete(outbreak::Outbreak) = has_log(outbreak) && has_tree(outbreak) && has_alignment(outbreak)
 
 function Base.show(io::IO, outbreak::Outbreak)
     print(io, "Outbreak(")
@@ -67,14 +69,21 @@ _stage_summary(value) = string("populated (", _stage_type(value), ")")
 _stage_type(value) = string(nameof(typeof(value)))
 _stage_type(value::AbstractVector) = "Vector"
 
+function _require_stage(outbreak::Outbreak, field::Symbol, next_step::AbstractString)
+    getfield(outbreak, field) !== nothing && return nothing
+    throw(ArgumentError("Cannot $next_step because the $(field) stage is empty."))
+end
+
 """
     with_tree(outbreak; validate=true)
     with_tree(log; validate=true)
 
 Populate the tree stage from an event log using `TreeSim.tree_from_eventlog`.
-The event-log-to-tree semantics live in TreeSim and its package extensions.
+The event-log-to-tree semantics live in TreeSim and its package extensions. A
+log is required for this transition.
 """
 function with_tree(outbreak::Outbreak; validate::Bool=true)
+    _require_stage(outbreak, :log, "populate the tree stage")
     tree = TreeSim.tree_from_eventlog(outbreak.log; validate)
     return Outbreak(outbreak.log, tree, outbreak.aln)
 end
@@ -86,7 +95,11 @@ with_tree(log; validate::Bool=true) = with_tree(Outbreak(log); validate)
 
 Return only the sampled-ancestry tree extracted by TreeSim.
 """
-outbreak_tree(log; validate::Bool=true) = TreeSim.tree_from_eventlog(log; validate)
+function outbreak_tree(log; validate::Bool=true)
+    log === nothing &&
+        throw(ArgumentError("Cannot extract an outbreak tree because the log stage is empty."))
+    return TreeSim.tree_from_eventlog(log; validate)
+end
 
 """
     simulate_outbreak_tree(log; validate=true)
@@ -108,8 +121,7 @@ sequence semantics live in SeqSim and its package extensions. Passing a tree
 directly returns a tree-only partial bundle with `log === nothing`.
 """
 function with_alignment(rng::AbstractRNG, outbreak::Outbreak, site_model)
-    outbreak.tree === nothing &&
-        throw(ArgumentError("Cannot simulate an alignment before the tree stage is populated. Use with_tree first."))
+    _require_stage(outbreak, :tree, "populate the alignment stage")
     aln = SeqSim.simulate_alignment(rng, outbreak.tree, site_model)
     return Outbreak(outbreak.log, outbreak.tree, aln)
 end

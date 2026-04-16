@@ -6,6 +6,7 @@ using Outbreak: Outbreak,
                 has_log,
                 has_tree,
                 has_alignment,
+                iscomplete,
                 with_tree,
                 with_alignment,
                 outbreak_tree,
@@ -63,14 +64,17 @@ end
     @test has_log(from_log)
     @test !has_tree(from_log)
     @test !has_alignment(from_log)
+    @test !iscomplete(from_log)
 
     @test from_tree.tree === tree
     @test from_tree.aln === nothing
     @test has_tree(from_tree)
     @test !has_alignment(from_tree)
+    @test !iscomplete(from_tree)
 
     @test full.aln === aln
     @test has_alignment(full)
+    @test iscomplete(full)
     @test sprint(show, full) == "Outbreak(log=EventLog, tree=Tree, aln=Vector)"
     @test occursin("log  : populated", sprint(show, MIME"text/plain"(), full))
 end
@@ -90,6 +94,31 @@ end
     @test simulated.log === log
     @test same_tree(simulated.tree, out.tree)
     @test simulated.aln === nothing
+end
+
+@testset "Invalid stage transitions fail explicitly" begin
+    log = fixture_event_log()
+    tree = fixture_tree()
+    model = site_model()
+
+    tree_only = Outbreak(nothing, tree)
+    log_only = Outbreak(log)
+    empty_tree = Outbreak(nothing, nothing)
+
+    err = @test_throws ArgumentError with_tree(tree_only)
+    @test occursin("log stage is empty", sprint(showerror, err.value))
+
+    err = @test_throws ArgumentError with_tree(empty_tree)
+    @test occursin("populate the tree stage", sprint(showerror, err.value))
+
+    err = @test_throws ArgumentError outbreak_tree(nothing)
+    @test occursin("log stage is empty", sprint(showerror, err.value))
+
+    err = @test_throws ArgumentError with_alignment(log_only, model)
+    @test occursin("tree stage is empty", sprint(showerror, err.value))
+
+    err = @test_throws ArgumentError with_alignment(MersenneTwister(91), empty_tree, model)
+    @test occursin("populate the alignment stage", sprint(showerror, err.value))
 end
 
 @testset "Tree to alignment orchestration" begin
