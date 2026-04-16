@@ -16,6 +16,8 @@ export Outbreak,
        simulate_outbreak_tree,
        simulate_outbreak_alignment
 
+# Bundle and stage state
+
 """
     Outbreak(log[, tree[, aln]])
 
@@ -36,10 +38,21 @@ end
 Outbreak(log) = Outbreak(log, nothing, nothing)
 Outbreak(log, tree) = Outbreak(log, tree, nothing)
 
+"""
+    has_log(outbreak)
+    has_tree(outbreak)
+    has_alignment(outbreak)
+    iscomplete(outbreak)
+
+Inspect which workflow stages are populated. `iscomplete` is true only when
+log, tree, and alignment are all present.
+"""
 has_log(outbreak::Outbreak) = outbreak.log !== nothing
 has_tree(outbreak::Outbreak) = outbreak.tree !== nothing
 has_alignment(outbreak::Outbreak) = outbreak.aln !== nothing
 iscomplete(outbreak::Outbreak) = has_log(outbreak) && has_tree(outbreak) && has_alignment(outbreak)
+
+# Compact display
 
 function Base.show(io::IO, outbreak::Outbreak)
     print(io, "Outbreak(")
@@ -73,6 +86,8 @@ function _require_stage(outbreak::Outbreak, field::Symbol, next_step::AbstractSt
     getfield(outbreak, field) !== nothing && return nothing
     throw(ArgumentError("Cannot $next_step because the $(field) stage is empty."))
 end
+
+# Log -> tree orchestration
 
 """
     with_tree(outbreak; validate=true)
@@ -115,6 +130,8 @@ function simulate_outbreak_tree(log; validate::Bool=true)
     return with_tree(log; validate)
 end
 
+# Tree -> alignment orchestration
+
 """
     with_alignment(rng, outbreak, site_model)
     with_alignment(outbreak, site_model)
@@ -146,6 +163,8 @@ in Outbreak.jl.
 """
 outbreak_alignment(rng::AbstractRNG, tree, site_model) = SeqSim.simulate_alignment(rng, tree, site_model)
 outbreak_alignment(tree, site_model) = SeqSim.simulate_alignment(Random.default_rng(), tree, site_model)
+
+# Log -> tree -> alignment orchestration
 
 """
     simulate_outbreak_alignment(rng, log, site_model; validate=true)

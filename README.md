@@ -79,7 +79,7 @@ only composes them.
 
 ## Public Surface
 
-The first orchestration surface is intentionally small:
+The phase-1 orchestration surface is intentionally small:
 
 - `Outbreak`
 - `has_log`, `has_tree`, `has_alignment`, `iscomplete`
